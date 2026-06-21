@@ -373,9 +373,9 @@ public class Main {
                             }
                         }
                         break;
-
+                    
                     case 2: // HU-PED-02: Crear Pedido
-                        System.out.println("\n---Nuevo Pedido ---");
+                        System.out.println("\n--- Nuevo Pedido ---");
 
                         // Lista usuarios para facilitar la seleccion
                         System.out.println("Clientes activos:");
@@ -416,23 +416,33 @@ public class Main {
                                     System.out.println("No puede crear un pedido vacio.");
                                     String salir = MenuHelper.leerTexto("Desea cancelar el pedido? (S/N): ");
                                     if (salir.equalsIgnoreCase("S")) {
-                                        return;
+                                        break; // CORREGIDO: break en vez de return para mantenerte en el menú de pedidos
                                     }
                                     continue;
                                 }
                                 cargandoProductos = false; // Finaliza el bucle de carga de productos
                             } else {
-                                int cant = MenuHelper.leerEntero("Ingrese la cantidad: ");
-                                productosIds.add(prodId);
-                                cantidades.add(cant);
-                                System.out.println("Producto pre-agregado a la lista.");
+                                // CORREGIDO: Validación defensiva en caliente antes de pedir la cantidad
+                                try {
+                                    Producto prodValido = productoService.buscarPorId(prodId);
+                                    int cant = MenuHelper.leerEntero("Ingrese la cantidad: ");
+                                    
+                                    productosIds.add(prodId);
+                                    cantidades.add(cant);
+                                    System.out.println("Producto '" + prodValido.getNombre() + "' pre-agregado a la lista.");
+                                } catch (Exception e) {
+                                    System.out.println("\nERROR: " + e.getMessage() + " Intente con un ID valido.");
+                                }
                             }
                         }
 
-                        // Envia las listas al servicio para la validacion atomica y el descuento de stock
-                        Pedido nuevoPedido = pedidoService.crear(usuarioId, formaPago, productosIds, cantidades);
-                        System.out.println("\nPedido creado con exito. ID generado: " + nuevoPedido.getId());
-                        System.out.println(nuevoPedido);
+                        // Si el pedido no quedó vacío (porque no se canceló en el paso anterior), lo guardamos
+                        if (!productosIds.isEmpty()) {
+                            // Envia las listas al servicio para la validacion atomica y el descuento de stock
+                            Pedido nuevoPedido = pedidoService.crear(usuarioId, formaPago, productosIds, cantidades);
+                            System.out.println("\nPedido creado con exito. ID generado: " + nuevoPedido.getId());
+                            System.out.println(nuevoPedido);
+                        }
                         break;
 
                     case 3: // HU-PED-03: Actualizar Estado o Pago
